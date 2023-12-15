@@ -18,7 +18,7 @@ def format_time(seconds):
     h, m = divmod(m, 60)
     return TIMESTAMP.format(ms=ms, s=s, m=m, h=h)
 
-def convert_wav_to_srt(source_folder, srt_folder, model_name='large-v2'):
+def convert_wav_to_srt(source_folder, srt_folder, model_name='large-v3'):
     
     model = WhisperModel(model_name, device="cuda", compute_type="float16")
     # for v3
