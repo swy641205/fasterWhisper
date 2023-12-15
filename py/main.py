@@ -1,6 +1,7 @@
 from pathlib import Path
 from tqdm import tqdm
 from faster_whisper import WhisperModel
+from translate_srt import to_traditional
 
 # stander srt
 TIMESTAMP = '{h:02}:{m:02}:{s:02},{ms:03}'
@@ -18,11 +19,9 @@ def format_time(seconds):
     h, m = divmod(m, 60)
     return TIMESTAMP.format(ms=ms, s=s, m=m, h=h)
 
-def convert_wav_to_srt(source_folder, srt_folder, model_name='large-v3'):
+def convert2srt(source_folder, srt_folder, model_name='large-v3', language=None, traditional=True):
     
     model = WhisperModel(model_name, device="cuda", compute_type="float16")
-    # for v3
-    # model.feature_extractor.mel_filters = model.feature_extractor.get_mel_filters(model.feature_extractor.sampling_rate, model.feature_extractor.n_fft, n_mels=128)
 
     # 想要匹配的擴展名列表
     extensions = ['*.mkv', '*.mp4', '*.m4a', '*.wav', '*.mp3']
@@ -30,11 +29,11 @@ def convert_wav_to_srt(source_folder, srt_folder, model_name='large-v3'):
     # 使用列表推導式和 glob 方法來獲取所有匹配的檔案
     files = [file for ext in extensions for file in source_folder.glob(ext)]
     
-    for wav_file in tqdm((files), desc='Converting WAV to SRT'):
+    for wav_file in tqdm((files), desc='Converting Audio to SRT'):
         segments, info = model.transcribe(
             str(wav_file), beam_size=5, vad_filter=True,
             vad_parameters=dict(min_silence_duration_ms=1000),
-            language="zh"
+            language=language
         )
         print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
         segments = list(segments)
@@ -50,6 +49,14 @@ def convert_wav_to_srt(source_folder, srt_folder, model_name='large-v3'):
                     end_time=end_time, transcript=transcript
                 )
                 file.write(caption)
+        
+        if traditional:
+            to_traditional(
+                [
+                    f"{wav_file.stem}.srt"
+                ]
+                , 'srt'
+            )
 
 
 if __name__ == '__main__':
@@ -57,4 +64,4 @@ if __name__ == '__main__':
     srt_folder = Path('srt')
     srt_folder.mkdir(exist_ok=True)
     
-    convert_wav_to_srt(source_folder, srt_folder)
+    convert2srt(source_folder, srt_folder)
